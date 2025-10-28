@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dynamic Login Page — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f7fb; --card:#ffffff; --accent:#0b5ed7; --danger:#e02424; --muted:#6b7280;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:Inter,system-ui,Segoe UI,Roboto,Arial; margin:0; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#f7fbff 0%, #eef4ff 100%);
+    padding:28px;
+  }
+
+  .wrap{width:100%;max-width:950px; display:grid; grid-template-columns:1fr 420px; gap:26px; align-items:center;}
+  @media (max-width:900px){ .wrap{grid-template-columns:1fr; padding:0 12px;} }
+
+  .left {
+    background:transparent; padding:22px 28px; border-radius:var(--radius);
+  }
+  .hero{
+    background:linear-gradient(180deg,#ffffff 0%, #f8fbff 100%);
+    padding:28px;border-radius:18px;box-shadow:0 10px 30px rgba(11,78,135,0.06);
+  }
+  .hero h1{margin:0 0 8px;font-size:22px;}
+  .hero p{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.5}
+
+  .right {
+    background:var(--card); border-radius:18px; padding:20px; box-shadow:0 10px 30px rgba(10,20,40,0.06);
+  }
+
+  form{display:grid;gap:12px;}
+  label{font-size:13px;font-weight:600;color:#0f1724;margin-bottom:6px;display:block}
+  input[type="text"],input[type="email"],input[type="password"]{
+    width:100%; padding:12px 14px; border-radius:10px; border:1px solid #e8eef8; font-size:14px; background:#fff;
+  }
+  .field {position:relative;}
+  .actions{display:flex;align-items:center;gap:10px;margin-top:8px;}
+  .btn{
+    background:var(--accent); color:white; padding:10px 14px; border-radius:10px; border:0; cursor:pointer; font-weight:700;
+  }
+  .btn.secondary{background:#f3f4f6;color:#111;border:1px solid #e6e9ef}
+  .small{font-size:13px;color:var(--muted)}
+  .link-btn{background:none;border:0;color:var(--accent);cursor:pointer;font-weight:600;padding:0}
+  .row{display:flex;gap:10px;align-items:center}
+  .remember{display:flex;gap:8px;align-items:center}
+  .error{color:var(--danger);font-size:13px}
+  .success{color:green;font-size:13px}
+
+  .pw-toggle{position:absolute; right:12px; top:36px; background:none;border:0; cursor:pointer; font-weight:600; color:var(--muted)}
+  .meter{height:8px;background:#eef4ff;border-radius:8px;overflow:hidden;margin-top:6px}
+  .meter > i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#fb7a7a,#ffcd3c,#5ad07a)}
+
+  .card-info{font-size:13px;color:var(--muted);margin-top:10px}
+
+  /* logged-in view */
+  .panel{display:flex;flex-direction:column;gap:8px}
+  .chip{display:inline-flex;gap:8px;align-items:center;background:#f1f5f9;padding:8px 10px;border-radius:999px;font-weight:600}
+  .logout{background:#fff;color:var(--accent);border:1px solid #e6e9ef}
+  footer{margin-top:14px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="wrap" role="main">
+  <div class="left">
+    <div class="hero" aria-hidden="false">
+      <h1>Sign in to Your Account</h1>
+      <p>Fast demo login with register support. Built for prototyping: clear validation, password strength meter, remember-me, attempt lockout. Replace the mock auth calls with real API endpoints to make it secure.</p>
+
+      <ul class="card-info">
+        <li><strong>Demo users:</strong> Use email `user@demo.com` / password `Password123!` or register your own.</li>
+        <li><strong>Security note:</strong> This demo uses <code>localStorage</code>. Do not store real passwords here.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="right" aria-live="polite">
+    <!-- Login Form -->
+    <div id="authContainer">
+      <form id="loginForm" novalidate>
+        <div>
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
+          <div id="emailErr" class="error" aria-hidden="true"></div>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required placeholder="Enter password">
+          <button type="button" class="pw-toggle" id="togglePassword" aria-label="Show password">Show</button>
+          <div id="pwErr" class="error" aria-hidden="true"></div>
+        </div>
+
+        <div class="row">
+          <label class="remember">
+            <input type="checkbox" id="rememberMe"> <span class="small">Remember me</span>
+          </label>
+          <div style="margin-left:auto" class="small"><button type="button" class="link-btn" id="openRegister">Create account</button></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" type="submit">Sign in</button>
+          <button type="button" class="btn secondary" id="demoFill">Fill demo</button>
+        </div>
+        <div id="loginMsg" role="status"></div>
+      </form>
+
+      <hr style="margin:14px 0;border:none;border-top:1px solid #eef4f8">
+
+      <div class="small" style="display:flex;justify-content:space-between;align-items:center">
+        <div>Or continue as a guest</div>
+        <div><button id="guestBtn" class="link-btn">Guest</button></div>
+      </div>
+    </div>
+
+    <!-- Register Form (hidden by default) -->
+    <div id="registerContainer" style="display:none">
+      <form id="registerForm" novalidate>
+        <div>
+          <label for="rname">Full name</label>
+          <input id="rname" name="rname" type="text" autocomplete="name" placeholder="Your full name" required>
+          <div id="rnameErr" class="error"></div>
+        </div>
+
+        <div>
+          <label for="remail">Email</label>
+          <input id="remail" name="remail" type="email" autocomplete="email" placeholder="you@example.com" required>
+          <div id="remailErr" class="error"></div>
+        </div>
+
+        <div class="field">
+          <label for="rpassword">Password</label>
+          <input id="rpassword" name="rpassword" type="password" autocomplete="new-password" placeholder="Create strong password" required>
+          <button type="button" class="pw-toggle" id="toggleRPassword" aria-label="Show password">Show</button>
+          <div class="meter" aria-hidden="false"><i id="pwMeter"></i></div>
+          <div id="rpasswordErr" class="error"></div>
+        </div>
+
+        <div class="actions">
+          <button class="btn" type="submit">Create account</button>
+          <button type="button" class="btn secondary" id="backToLogin">Back to sign in</button>
+        </div>
+        <div id="registerMsg" role="status"></div>
+      </form>
+    </div>
+
+    <!-- Logged-in view -->
+    <div id="accountContainer" style="display:none">
+      <div class="panel">
+        <div class="chip" id="accountChip">Signed in</div>
+        <div id="accountInfo" class="small"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="logoutBtn" class="btn logout">Sign out</button>
+          <button id="clearStore" class="btn secondary">Clear demo storage</button>
+        </div>
+        <footer>Session is simulated in localStorage for this demo.</footer>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/*
+  Dynamic Login Page (front-end only demo)
+  - Demo auth stored in localStorage
+  - Replace auth functions with backend API calls for real usage
+  - Brief security notes included below
+*/
+
+const DEMO_USERS_KEY = 'demo_users_v1';
+const SESSION_KEY = 'demo_session_v1';
+const ATTEMPTS_KEY = 'login_attempts_v1';
+const LOCKOUT_MS = 5 * 60 * 1000; // 5 minutes lockout after too many attempts
+const MAX_ATTEMPTS = 5;
+
+// Utility
+const $ = id => document.getElementById(id);
+const now = () => Date.now();
+
+// Basic demo user seeded if missing
+(function seedDemoUser(){
+  try {
+    const raw = localStorage.getItem(DEMO_USERS_KEY);
+    if (!raw) {
+      const demo = [{
+        id: cryptoRandomId(),
+        name: 'Demo User',
+        email: 'user@demo.com',
+        // WARNING: storing plaintext password is insecure — this is only for a demo
+        password: 'Password123!',
+        createdAt: new Date().toISOString()
+      }];
+      localStorage.setItem(DEMO_USERS_KEY, JSON.stringify(demo));
+    }
+  } catch(e){ console.warn('seed error', e); }
+})();
+
+function cryptoRandomId(){
+  // light random id using crypto if available
+  try {
+    return crypto.getRandomValues(new Uint32Array(2)).join('-');
+  } catch(e){
+    return Math.random().toString(36).slice(2,10);
+  }
+}
+
+function getUsers(){ try { return JSON.parse(localStorage.getItem(DEMO_USERS_KEY) || '[]'); } catch(e){ return []; } }
+function saveUsers(u){ localStorage.setItem(DEMO_USERS_KEY, JSON.stringify(u)); }
+
+// Session helpers
+function setSession(user, remember=false){
+  const payload = {userId: user.id, email:user.email, name:user.name, createdAt: new Date().toISOString()};
+  if (remember) localStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+  else sessionStorage.setItem(SESSION_KEY, JSON.stringify(payload));
+  renderAuthState();
+}
+function clearSession(){
+  localStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
+  renderAuthState();
+}
+function getSession(){
+  return JSON.parse(sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY) || 'null');
+}
+
+// Attempt tracking
+function getAttempts(){ return JSON.parse(localStorage.getItem(ATTEMPTS_KEY) || '{"count":0,"lockedUntil":0}'); }
+function setAttempts(obj){ localStorage.setItem(ATTEMPTS_KEY, JSON.stringify(obj)); }
+
+// UI elements
+const loginForm = $('loginForm'), email = $('email'), password = $('password'), rememberMe = $('rememberMe');
+const loginMsg = $('loginMsg'), emailErr = $('emailErr'), pwErr = $('pwErr');
+const registerContainer = $('registerContainer'), authContainer = $('authContainer'), openRegister = $('openRegister');
+const registerForm = $('registerForm'), remail = $('remail'), rpassword = $('rpassword'), rname = $('rname');
+const registerMsg = $('registerMsg'), remailErr = $('remailErr'), rpasswordErr = $('rpasswordErr'), rnameErr = $('rnameErr');
+const togglePassword = $('togglePassword'), toggleRPassword = $('toggleRPassword'), pwMeter = $('pwMeter');
+const accountContainer = $('accountContainer'), accountInfo = $('accountInfo'), accountChip = $('accountChip');
+const logoutBtn = $('logoutBtn'), clearStore = $('clearStore');
+const demoFill = $('demoFill'), guestBtn = $('guestBtn');
+const backToLogin = $('backToLogin');
+
+
+// helper: show message
+function showMsg(el, msg, isError=false){
+  el.textContent = msg || '';
+  el.className = isError ? 'error' : (msg ? 'success' : '');
+  if (!msg) el.setAttribute('aria-hidden','true'); else el.removeAttribute('aria-hidden');
+}
+
+// toggle password visibility
+togglePassword.addEventListener('click', ()=>{
+  const t = password;
+  t.type = t.type === 'password' ? 'text' : 'password';
+  togglePassword.textContent = t.type === 'password' ? 'Show' : 'Hide';
+});
+
+toggleRPassword.addEventListener('click', ()=>{
+  const t = rpassword;
+  t.type = t.type === 'password' ? 'text' : 'password';
+  toggleRPassword.textContent = t.type === 'password' ? 'Show' : 'Hide';
+});
+
+// password strength meter
+rpassword.addEventListener('input', ()=> {
+  const score = passwordStrength(rpassword.value);
+  const pct = Math.min(100, Math.round(score * 20));
+  pwMeter.style.width = pct + '%';
+});
+
+// Demo fill
+demoFill.addEventListener('click', ()=>{
+  email.value = 'user@demo.com'; password.value = 'Password123!';
+});
+
+// guest
+guestBtn.addEventListener('click', ()=>{
+  clearSession();
+  // set a guest session (not persisted)
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({userId:'guest-'+cryptoRandomId(), email:'guest', name:'Guest', createdAt:new Date().toISOString()}));
+  renderAuthState();
+});
+
+// login logic (client-only)
+loginForm.addEventListener('submit', (ev)=>{
+  ev.preventDefault();
+  showMsg(loginMsg, ''); showMsg(emailErr,''); showMsg(pwErr,'');
+  const attempts = getAttempts();
+  if (attempts.lockedUntil && now() < attempts.lockedUntil) {
+    const waitSec = Math.ceil((attempts.lockedUntil - now())/1000);
+    showMsg(loginMsg, `Too many attempts. Try again in ${waitSec}s.`, true); return;
+  }
+
+  const mail = email.value.trim().toLowerCase();
+  const pass = password.value;
+  if (!mail){ showMsg(emailErr,'Email is required', true); return; }
+  if (!pass){ showMsg(pwErr,'Password is required', true); return; }
+
+  const users = getUsers();
+  const found = users.find(u => u.email.toLowerCase() === mail);
+
+  if (!found || found.password !== pass){
+    // increment attempts
+    attempts.count = (attempts.count || 0) + 1;
+    if (attempts.count >= MAX_ATTEMPTS){
+      attempts.lockedUntil = now() + LOCKOUT_MS;
+      attempts.count = 0;
+      showMsg(loginMsg, `Account locked for ${Math.round(LOCKOUT_MS/60000)} min due to multiple failed attempts.`, true);
+    } else {
+      showMsg(loginMsg, 'Invalid credentials', true);
+    }
+    setAttempts(attempts);
+    return;
+  }
+
+  // success
+  setAttempts({count:0, lockedUntil:0});
+  showMsg(loginMsg, 'Signed in successfully.');
+  setSession(found, rememberMe.checked);
+  // trigger callback / redirect - for demo we show account view
+  setTimeout(()=> renderAuthState(), 300);
+});
+
+// register logic (client-only)
+registerForm.addEventListener('submit', (ev)=>{
+  ev.preventDefault();
+  showMsg(registerMsg,''); showMsg(remailErr,''); showMsg(rpasswordErr,''); showMsg(rnameErr,'');
+
+  const name = rname.value.trim();
+  const mail = remail.value.trim().toLowerCase();
+  const pass = rpassword.value;
+
+  if (!name){ showMsg(rnameErr,'Name required', true); return; }
+  if (!validateEmail(mail)){ showMsg(remailErr,'Invalid email', true); return; }
+  const pwScore = passwordStrength(pass);
+  if (pwScore < 3){ showMsg(rpasswordErr,'Password too weak (use length + numbers + symbols).', true); return; }
+
+  const users = getUsers();
+  if (users.some(u=>u.email.toLowerCase() === mail)){ showMsg(remailErr,'Account already exists with this email', true); return; }
+
+  const newUser = { id: cryptoRandomId(), name, email: mail, password: pass, createdAt: new Date().toISOString() };
+  users.push(newUser);
+  saveUsers(users);
+  showMsg(registerMsg, 'Account created. Signing you in...');
+  setTimeout(()=> {
+    setSession(newUser, true);
+    renderAuthState();
+  }, 600);
+});
+
+// UI navigation
+openRegister.addEventListener('click', ()=> {
+  authContainer.style.display = 'none';
+  registerContainer.style.display = 'block';
+});
+backToLogin.addEventListener('click', ()=> {
+  registerContainer.style.display = 'none';
+  authContainer.style.display = 'block';
+});
+
+// logout & clear demo store
+logoutBtn.addEventListener('click', ()=> {
+  clearSession();
+  showMsg(loginMsg, 'Signed out.');
+});
+clearStore.addEventListener('click', ()=>{
+  if (!confirm('This will clear demo users, sessions & attempts from localStorage. Continue?')) return;
+  localStorage.removeItem(DEMO_USERS_KEY);
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(ATTEMPTS_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+});
+
+// Render current state
+function renderAuthState(){
+  const s = getSession();
+  if (s){
+    authContainer.style.display = 'none';
+    registerContainer.style.display = 'none';
+    accountContainer.style.display = 'block';
+    accountInfo.textContent = `Signed in as ${s.name || s.email} • Since ${new Date(s.createdAt).toLocaleString()}`;
+    accountChip.textContent = `Welcome, ${s.name || 'User'}`;
+  } else {
+    authContainer.style.display = 'block';
+    registerContainer.style.display = 'none';
+    accountContainer.style.display = 'none';
+  }
+}
+renderAuthState();
+
+/* ---------- Helpers & validators ---------- */
+
+function validateEmail(e){
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+
+/*
+ Password strength estimate:
+ returns 0..5 based on variety and length.
+ This is simple heuristic for demo only.
+*/
+function passwordStrength(p){
+  let score = 0;
+  if (!p) return 0;
+  if (p.length >= 8) score++;
+  if (p.length >= 12) score++;
+  if (/[0-9]/.test(p)) score++;
+  if (/[a-z]/.test(p) && /[A-Z]/.test(p)) score++;
+  if (/[^A-Za-z0-9]/.test(p)) score++;
+  return score;
+}
+
+/* Accessibility: focus feedback when using keyboard */
+document.addEventListener('keyup', (e)=>{
+  if (e.key === 'Tab') document.body.classList.add('keyboard-nav');
+});
+</script>
+</body>
+</html>
